@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cart</title>
+    <script defer src="js/cart.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script defer src="js/checkout.js"></script>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .cart-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .cart-container a {
+        text-decoration: none;
+        color: white;
+      }
+      .cart-items {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      .cart-item {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 300px;
+        margin-bottom: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .cart-item img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .cart-item p {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0 10px;
+      }
+      .quantity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .quantity button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .quantity button:hover {
+        background-color: #218838;
+      }
+      .total {
+        font-size: 22px;
+        font-weight: bold;
+        margin-top: 15px;
+      }
+      .pay-now {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      .pay-now:hover {
+        background-color: #218838;
+      }
+      .bill {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        width: 320px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        display: none;
+      }
+      .bill h2 {
+        text-align: center;
+        margin: 0 0 10px;
+      }
+      .bill p {
+        margin: 5px 0;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Canteen</div>
+      <div class="cart-container">
+        <a href="index.html">Back to Menu</a>
+        <span id="cart-count">0</span>
+      </div>
+    </nav>
+    <main class="cart-items" id="cart-items">
+      <div class="cart-item">
+        <img src="images/biscuit.jpg" alt="Biscuit" />
+        <p>Biscuit - ₹10</p>
+        <div class="quantity">
+          <button onclick="updateCart('biscuit', -1)">-</button>
+          <span id="biscuit-count">0</span>
+          <button onclick="updateCart('biscuit', 1)">+</button>
+        </div>
+      </div>
+      <div class="cart-item">
+        <img src="images/meal.jpg" alt="Meal" />
+        <p>Meal - ₹50</p>
+        <div class="quantity">
+          <button onclick="updateCart('meal', -1)">-</button>
+          <span id="meal-count">0</span>
+          <button onclick="updateCart('meal', 1)">+</button>
+        </div>
+      </div>
+      <div class="total">Total: ₹<span id="total-amount">0</span></div>
+      <button class="pay-now" onclick="initiatePayment()">Pay Now</button>
+
+      <div class="bill" id="bill">
+        <h2>Bill Receipt</h2>
+        <p id="bill-items"></p>
+        <p>
+          <strong>Total: ₹<span id="bill-total">0</span></strong>
+        </p>
+      </div>
+    </main>
+    <script>
+      let cart = { biscuit: 0, meal: 0 };
+      let prices = { biscuit: 10, meal: 50 };
+
+      function updateCart(item, change) {
+        if (cart[item] + change >= 0) {
+          cart[item] += change;
+          document.getElementById(item + "-count").innerText = cart[item];
+          updateTotal();
+        }
+      }
+
+      function updateTotal() {
+        let total = 0;
+        for (let item in cart) {
+          total += cart[item] * prices[item];
+        }
+        document.getElementById("total-amount").innerText = total;
+        document.getElementById("cart-count").innerText =
+          cart.biscuit + cart.meal;
+      }
+
+      function initiatePayment() {
+        let totalAmount = parseInt(
+          document.getElementById("total-amount").innerText
+        );
+        if (totalAmount === 0) {
+          alert("Cart is empty!");
+          return;
+        }
+
+        let options = {
+          key: "YOUR_RAZORPAY_KEY",
+          amount: totalAmount * 100,
+          currency: "INR",
+          name: "Canteen Payment",
+          description: "Order Payment",
+          image: "images/logo.png",
+          handler: function (response) {
+            showBill();
+          },
+          prefill: {
+            name: "Customer",
+            email: "customer@example.com",
+            contact: "9999999999",
+          },
+          theme: {
+            color: "#28a745",
+          },
+        };
+
+        let rzp = new Razorpay(options);
+        rzp.open();
+      }
+
+      function showBill() {
+        let billItems = "";
+        for (let item in cart) {
+          if (cart[item] > 0) {
+            billItems += `<p>${item} x ${cart[item]} = ₹${
+              cart[item] * prices[item]
+            }</p>`;
+          }
+        }
+        document.getElementById("bill-items").innerHTML = billItems;
+        document.getElementById("bill-total").innerText =
+          document.getElementById("total-amount").innerText;
+        document.getElementById("bill").style.display = "block";
+      }
+    </script>
+  </body>
+</html>

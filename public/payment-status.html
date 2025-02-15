@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Status</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .cart-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .cart-container a {
+        text-decoration: none;
+        color: white;
+      }
+      .status-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      .status-box {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        width: 320px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .status-box h2 {
+        margin: 0 0 10px;
+      }
+      .status-box p {
+        font-size: 16px;
+        margin: 5px 0;
+      }
+      .success {
+        color: green;
+      }
+      .failure {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Canteen</div>
+      <div class="cart-container">
+        <a href="index.html">Back to Menu</a>
+      </div>
+    </nav>
+    <main class="status-container">
+      <div class="status-box">
+        <h2 id="status-heading">Loading...</h2>
+        <p id="order-details">Fetching payment status...</p>
+      </div>
+    </main>
+
+    <script>
+      function getQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          orderId: params.get("order_id"),
+          paymentId: params.get("payment_id"),
+          amount: params.get("amount"),
+          items: params.get("items"),
+        };
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const { orderId, paymentId, amount, items } = getQueryParams();
+        const statusHeading = document.getElementById("status-heading");
+        const orderDetails = document.getElementById("order-details");
+
+        if (orderId && paymentId && amount) {
+          statusHeading.textContent = "Payment Successful!";
+          statusHeading.classList.add("success");
+          orderDetails.innerHTML = `
+            <p><strong>Order ID:</strong> ${orderId}</p>
+            <p><strong>Payment ID:</strong> ${paymentId}</p>
+            <p><strong>Total Paid:</strong> ₹${amount}</p>
+            <p><strong>Items Ordered:</strong> ${decodeURIComponent(items)}</p>
+          `;
+        } else {
+          statusHeading.textContent = "Payment Failed!";
+          statusHeading.classList.add("failure");
+          orderDetails.innerHTML = `<p>Transaction was unsuccessful. Please try again.</p>`;
+        }
+      });
+    </script>
+  </body>
+</html>
