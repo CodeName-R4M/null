@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canteen</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Canteen</div>
+      <div class="top-right">
+        <div class="placeholder-img"></div>
+        <div class="cart-container">
+          <a href="cart.html">
+            <img src="images/cart.png" alt="Cart" id="cart-icon" />
+            <span id="cart-count">0</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="product-container" id="product-container">
+      <!-- Product Template will be injected dynamically -->
+    </main>
+
+    <script>
+      let cart = JSON.parse(sessionStorage.getItem("cart")) || {};
+
+      // Update cart count on page load
+      updateCartCount();
+
+      // Fetch menu items dynamically
+      fetch("/admin/menu")
+  .then((response) => response.json())
+  .then((data) => {
+    if (typeof data === "object" && data !== null) {
+      for (let item in data) {
+        const product = data[item];
+        if (!cart[item]) cart[item] = 0; // Initialize cart item using the ID (key)
+        updateProductDisplay(item, product);
+      }
+    } else {
+      console.error("Fetched data is not an object:", data);
+    }
+  })
+  .catch((error) => {
+    console.error("Error fetching menu:", error);
+  });
+
+  function updateProductDisplay(item, product) {
+  const productContainer = document.getElementById("product-container");
+  const productElement = document.createElement("div");
+  productElement.classList.add("product");
+  productElement.innerHTML = ` 
+    <img src="${product.image}" alt="${product.name}" />
+    <p>${product.name} - ₹${product.price}</p>
+    <div class="quantity">
+      <button onclick="updateQuantity('${item}', -1)">-</button>
+      <span id="${item}-count">${cart[item]}</span>
+      <button onclick="updateQuantity('${item}', 1)">+</button>
+    </div>
+  `;
+  productContainer.appendChild(productElement);
+}
+
+      function updateQuantity(item, change) {
+        if (cart[item] + change >= 0) {
+          cart[item] += change;
+          // Update the quantity display
+          document.getElementById(`${item}-count`).textContent = cart[item];
+
+          // Update the total count
+          updateCartCount();
+
+          // Save cart in sessionStorage
+          sessionStorage.setItem("cart", JSON.stringify(cart));
+        }
+      }
+
+      function updateCartCount() {
+        let totalCount = Object.values(cart).reduce(
+          (total, quantity) => total + quantity,
+          0
+        );
+        document.getElementById("cart-count").textContent = totalCount;
+      }
+    </script>
+  </body>
+</html>

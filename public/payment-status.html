@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Status</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .cart-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .cart-container a {
+        text-decoration: none;
+        color: white;
+      }
+      .status-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      .status-box {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        width: 320px;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .status-box h2 {
+        margin: 0 0 10px;
+      }
+      .status-box p {
+        font-size: 16px;
+        margin: 5px 0;
+      }
+      .success {
+        color: green;
+      }
+      .failure {
+        color: red;
+      }
+      .items-list {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 5px;
+      }
+      .item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+      }
+      /* New Order Button Styles */
+      .new-order-btn {
+        background: #007bff;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      .new-order-btn:hover {
+        background: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Canteen</div>
+      <div class="cart-container">
+        <a href="index.html">Back to Menu</a>
+      </div>
+    </nav>
+    <main class="status-container">
+      <div class="status-box">
+        <h2 id="status-heading">Loading...</h2>
+        <p id="order-details">Fetching payment status...</p>
+        <div id="items-container" class="items-list"></div>
+        <button class="new-order-btn" onclick="startNewOrder()">New Order</button>
+      </div>
+    </main>
+
+    <script>
+      function getCookie(name) {
+        const cookies = document.cookie.split("; ");
+        for (const cookie of cookies) {
+          const [key, value] = cookie.split("=");
+          if (key === name) return decodeURIComponent(value);
+        }
+        return null;
+      }
+
+      function formatTimestamp(timestamp) {
+        if (!timestamp) return "N/A";
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return "Invalid Date";
+        return new Intl.DateTimeFormat("en-IN", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }).format(date);
+      }
+
+      function getItemImage(itemName) {
+        const images = {
+          biscuit: "images/biscuit.jpg",
+          meal: "images/meal.jpg",
+        };
+        return images[itemName] || "https://example.com/default.jpg";
+      }
+
+      function displayItems(items) {
+        const itemsContainer = document.getElementById("items-container");
+        itemsContainer.innerHTML = "";
+
+        try {
+          const parsedItems = JSON.parse(items);
+          let hasValidItems = false;
+
+          Object.entries(parsedItems).forEach(([itemName, quantity]) => {
+            if (quantity > 0) {
+              hasValidItems = true;
+              const itemDiv = document.createElement("div");
+              itemDiv.classList.add("item");
+              itemDiv.innerHTML = ` 
+                <img src="${getItemImage(itemName)}" alt="${itemName}">
+                <p><strong>${itemName}</strong> × ${quantity}</p>
+              `;
+              itemsContainer.appendChild(itemDiv);
+            }
+          });
+
+          if (!hasValidItems) {
+            itemsContainer.innerHTML = "<p>No items ordered.</p>";
+          }
+        } catch (error) {
+          console.error("Error parsing items:", error);
+          itemsContainer.innerHTML = "<p>Could not load items.</p>";
+        }
+      }
+
+      function updateUI(status, orderId, paymentId, amount, items, timestamp) {
+        const statusHeading = document.getElementById("status-heading");
+        const orderDetails = document.getElementById("order-details");
+
+        if (status === "success") {
+          statusHeading.textContent = "Payment Successful!";
+          statusHeading.classList.add("success");
+          orderDetails.innerHTML = `
+            <p><strong>Order ID:</strong> ${orderId}</p>
+            <p><strong>Payment ID:</strong> ${paymentId}</p>
+            <p><strong>Total Paid:</strong> ₹${amount}</p>
+            <p><strong>Order Time:</strong> ${formatTimestamp(timestamp)}</p>
+          `;
+          displayItems(items);
+        } else {
+          statusHeading.textContent = "Payment Failed!";
+          statusHeading.classList.add("failure");
+          orderDetails.innerHTML = `<p>Transaction was unsuccessful. Please try again.</p>`;
+        }
+      }
+
+      function fetchPaymentStatus() {
+        console.log("🔍 Debug: Fetching payment details from cookies...");
+        console.log("🔍 Debug: All Cookies ->", document.cookie);
+
+        const status = getCookie("order_status") || "failed";
+        const orderId = getCookie("order_id");
+        const paymentId = getCookie("payment_id");
+        const amount = getCookie("order_amount") || "N/A"; 
+        const items = getCookie("order_items") || "{}"; 
+        const timestamp = getCookie("order_timestamp");
+
+        if (!orderId || !paymentId) {
+          console.error("❌ Error: Payment details missing in cookies!");
+          document.getElementById("status-heading").textContent =
+            "Payment Details Not Found!";
+          return;
+        }
+
+        console.log("🔍 Debug: Retrieved Payment Details from Cookies", {
+          orderId,
+          paymentId,
+          amount,
+          timestamp,
+        });
+
+        updateUI(status, orderId, paymentId, amount, items, timestamp);
+      }
+
+      function startNewOrder() {
+        console.log("🔄 Clearing session storage and cookies for new order...");
+
+        // Clear session storage
+        sessionStorage.clear();
+        console.log("✅ Session storage cleared!");
+
+        // Clear all relevant cookies
+        const cookiesToDelete = [
+          "order_status",
+          "order_id",
+          "payment_id",
+          "order_amount",
+          "order_items",
+          "order_timestamp"
+        ];
+
+        cookiesToDelete.forEach(cookie => {
+          document.cookie = `${cookie}=; path=/; max-age=0; SameSite=Strict; Secure`;
+        });
+
+        console.log("✅ All order-related cookies cleared. Redirecting...");
+        window.location.href = "/"; // Redirect to home page
+      }
+
+      document.addEventListener("DOMContentLoaded", fetchPaymentStatus);
+    </script>
+  </body>
+</html>

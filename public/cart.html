@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cart</title>
+    <!-- Razorpay Checkout Script for payment processing -->
+    <script defer src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+      /* Global Styles */
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+
+      /* Navigation Styles */
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .cart-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .cart-container a {
+        text-decoration: none;
+        color: white;
+      }
+
+      /* Cart Item Styles */
+      .cart-items {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .cart-item {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 320px;
+        margin-bottom: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .cart-item img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .cart-item p {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0 10px;
+      }
+
+      /* Quantity Control Styles */
+      .quantity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .quantity button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .quantity button:hover {
+        background-color: #218838;
+      }
+
+      /* Total Price Styles */
+      .total {
+        font-size: 22px;
+        font-weight: bold;
+        margin-top: 15px;
+        text-align: center;
+      }
+
+      /* Payment Button Styles */
+      .pay-now-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .pay-now {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        border-radius: 8px;
+      }
+
+      .pay-now:hover {
+        background-color: #218838;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <div class="logo">Canteen</div>
+      <div class="cart-container">
+        <a href="/">Back to Menu</a>
+        <span id="cart-count">0</span>
+      </div>
+    </nav>
+
+    <main class="cart-items" id="cart-items"></main>
+
+    <div class="total">Total: ₹<span id="total-amount">0</span></div>
+
+    <div class="pay-now-wrapper">
+      <button class="pay-now" id="pay-now">Pay Now</button>
+    </div>
+
+    <script>
+      let cart = JSON.parse(sessionStorage.getItem("cart")) || {};
+      const prices = { biscuit: 10, meal: 50 };
+
+      function updateCart() {
+        let totalAmount = 0;
+        let totalItems = 0;
+        for (let item in cart) {
+          if (cart[item] > 0) {
+            totalAmount += cart[item] * prices[item];
+            totalItems += cart[item];
+          }
+        }
+        document.getElementById("total-amount").innerText = totalAmount;
+        document.getElementById("cart-count").innerText = totalItems;
+      }
+
+      function renderCartItems() {
+        const cartItemsContainer = document.getElementById("cart-items");
+        cartItemsContainer.innerHTML = "";
+        for (let item in cart) {
+          if (cart[item] > 0) {
+            const cartItemElement = document.createElement("div");
+            cartItemElement.classList.add("cart-item");
+            cartItemElement.innerHTML = `
+              <img src="images/${item}.jpg" alt="${item}" /> 
+              <p>${item.charAt(0).toUpperCase() + item.slice(1)} - ₹${prices[item]}</p> 
+              <div class="quantity"> 
+                <button class="quantity-decrease" data-item="${item}">-</button> 
+                <span id="${item}-quantity">${cart[item]}</span> 
+                <button class="quantity-increase" data-item="${item}">+</button> 
+              </div> 
+            `;
+            cartItemsContainer.appendChild(cartItemElement);
+          }
+        }
+        updateCart();
+      }
+
+      document.addEventListener("click", function (event) {
+        const item = event.target.getAttribute("data-item");
+        if (event.target.classList.contains("quantity-increase")) {
+          cart[item] = (cart[item] || 0) + 1;
+        } else if (event.target.classList.contains("quantity-decrease") && cart[item] > 0) {
+          cart[item]--;
+        }
+        sessionStorage.setItem("cart", JSON.stringify(cart));
+        renderCartItems();
+      });
+
+      document.getElementById("pay-now").addEventListener("click", function () {
+    let totalAmount = parseInt(document.getElementById("total-amount").innerText);
+    if (!totalAmount) {
+        alert("Cart is empty!");
+        return;
+    }
+
+    fetch("/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: totalAmount, cart }),
+    })
+    .then((res) => res.json())
+    .then((order) => {
+        if (!order || !order.id) throw new Error("Order creation failed");
+
+        const timestamp = new Date().toISOString(); // Capture order creation time
+
+        // ✅ Store details in cookies securely
+        document.cookie = `order_id=${order.id}; path=/; max-age=3600; SameSite=Strict; Secure`;
+        document.cookie = `order_amount=${totalAmount}; path=/; max-age=3600; SameSite=Strict; Secure`;
+        document.cookie = `order_items=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=3600; SameSite=Strict; Secure`;
+        document.cookie = `order_timestamp=${timestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
+
+        console.log("🔍 Debug: Stored Order Details in Cookies", {
+            orderId: order.id,
+            amount: totalAmount,
+            items: cart,
+            timestamp: timestamp,
+        });
+
+        const options = {
+            key: "rzp_test_R9tYRWA6Ux3Yhn",
+            amount: totalAmount * 100,
+            currency: "INR",
+            name: "Canteen Payment",
+            order_id: order.id,
+            handler: function (response) {
+                const paymentTimestamp = new Date().toISOString(); // Capture actual payment completion time
+
+                // ✅ Store payment details in cookies securely
+                document.cookie = `payment_id=${response.razorpay_payment_id}; path=/; max-age=3600; SameSite=Strict; Secure`;
+                document.cookie = `order_status=success; path=/; max-age=3600; SameSite=Strict; Secure`;
+                document.cookie = `order_timestamp=${paymentTimestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
+
+                console.log("🔍 Debug: Stored Payment Details in Cookies", {
+                    orderId: order.id,
+                    paymentId: response.razorpay_payment_id,
+                    amount: totalAmount,
+                    timestamp: paymentTimestamp,
+                });
+
+                window.location.replace("/payment-status.html"); // ✅ Redirect securely
+            },
+            prefill: {
+                name: "Customer",
+                email: "customer@example.com",
+                contact: "9999999999",
+            },
+        };
+
+        const rzp1 = new Razorpay(options);
+        rzp1.open();
+    })
+    .catch((err) => console.error("Error creating order:", err));
+});
+
+      renderCartItems();
+    </script>
+  </body>
+</html>
