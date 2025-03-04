@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canteen</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
     <nav>
@@ -32,38 +32,47 @@
 
       // Fetch menu items dynamically
       fetch("/admin/menu")
-  .then((response) => response.json())
-  .then((data) => {
-    if (typeof data === "object" && data !== null) {
-      for (let item in data) {
-        const product = data[item];
-        if (!cart[item]) cart[item] = 0; // Initialize cart item using the ID (key)
-        updateProductDisplay(item, product);
-      }
-    } else {
-      console.error("Fetched data is not an object:", data);
-    }
-  })
-  .catch((error) => {
-    console.error("Error fetching menu:", error);
-  });
+        .then((response) => response.json())
+        .then((data) => {
+          if (typeof data === "object" && data !== null) {
+            document.getElementById("product-container").innerHTML = "";
 
-  function updateProductDisplay(item, product) {
+            // Initialize cart with default values for all items
+            for (let item in data) {
+              if (!cart[item]) {
+                cart[item] = 0; // Initialize to 0 if the item doesn't exist in the cart
+              }
+              updateProductDisplay(item, data[item]);
+            }
+
+            // Save the updated cart to sessionStorage
+            sessionStorage.setItem("cart", JSON.stringify(cart));
+          } else {
+            console.error("Fetched data is not an object:", data);
+          }
+        })
+        .catch((error) => console.error("Error fetching menu:", error));
+
+        function updateProductDisplay(item, product) {
   const productContainer = document.getElementById("product-container");
   const productElement = document.createElement("div");
   productElement.classList.add("product");
   productElement.innerHTML = ` 
-    <img src="${product.image}" alt="${product.name}" />
+    <img src="${
+      product.image.includes("drive.google.com")
+        ? `/proxy-image/${product.image.split("id=")[1]}`
+        : product.image
+    }" alt="${product.name}" 
+      onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
     <p>${product.name} - ₹${product.price}</p>
     <div class="quantity">
       <button onclick="updateQuantity('${item}', -1)">-</button>
-      <span id="${item}-count">${cart[item]}</span>
+      <span id="${item}-count">${cart[item] || 0}</span>
       <button onclick="updateQuantity('${item}', 1)">+</button>
     </div>
   `;
   productContainer.appendChild(productElement);
 }
-
       function updateQuantity(item, change) {
         if (cart[item] + change >= 0) {
           cart[item] += change;

@@ -168,30 +168,55 @@
       function renderCartItems() {
         const cartItemsContainer = document.getElementById("cart-items");
         cartItemsContainer.innerHTML = "";
-        for (let item in cart) {
-          if (cart[item] > 0) {
-            const cartItemElement = document.createElement("div");
-            cartItemElement.classList.add("cart-item");
-            cartItemElement.innerHTML = `
-              <img src="images/${item}.jpg" alt="${item}" /> 
-              <p>${item.charAt(0).toUpperCase() + item.slice(1)} - ₹${prices[item]}</p> 
-              <div class="quantity"> 
-                <button class="quantity-decrease" data-item="${item}">-</button> 
-                <span id="${item}-quantity">${cart[item]}</span> 
-                <button class="quantity-increase" data-item="${item}">+</button> 
-              </div> 
-            `;
-            cartItemsContainer.appendChild(cartItemElement);
-          }
-        }
-        updateCart();
-      }
 
+        // Fetch menu items dynamically
+        fetch("/admin/menu")
+          .then((response) => response.json())
+          .then((menuData) => {
+            let totalAmount = 0;
+            let totalItems = 0;
+
+            for (let item in cart) {
+              if (cart[item] > 0 && menuData[item]) {
+                const product = menuData[item];
+                const cartItemElement = document.createElement("div");
+                cartItemElement.classList.add("cart-item");
+                cartItemElement.innerHTML = `
+            <img src="${
+              product.image.includes("drive.google.com")
+                ? `/proxy-image/${product.image.split("id=")[1]}`
+                : product.image
+            }" alt="${product.name}" 
+              onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+            <p>${product.name} - ₹${product.price}</p>
+            <div class="quantity">
+              <button class="quantity-decrease" data-item="${item}">-</button>
+              <span id="${item}-quantity">${cart[item]}</span>
+              <button class="quantity-increase" data-item="${item}">+</button>
+            </div>
+          `;
+                cartItemsContainer.appendChild(cartItemElement);
+
+                // Calculate total amount and items
+                totalAmount += cart[item] * product.price;
+                totalItems += cart[item];
+              }
+            }
+
+            // Update total amount and cart count
+            document.getElementById("total-amount").innerText = totalAmount;
+            document.getElementById("cart-count").innerText = totalItems;
+          })
+          .catch((error) => console.error("Error fetching menu:", error));
+      }
       document.addEventListener("click", function (event) {
         const item = event.target.getAttribute("data-item");
         if (event.target.classList.contains("quantity-increase")) {
           cart[item] = (cart[item] || 0) + 1;
-        } else if (event.target.classList.contains("quantity-decrease") && cart[item] > 0) {
+        } else if (
+          event.target.classList.contains("quantity-decrease") &&
+          cart[item] > 0
+        ) {
           cart[item]--;
         }
         sessionStorage.setItem("cart", JSON.stringify(cart));
@@ -199,43 +224,47 @@
       });
 
       document.getElementById("pay-now").addEventListener("click", function () {
-    let totalAmount = parseInt(document.getElementById("total-amount").innerText);
-    if (!totalAmount) {
-        alert("Cart is empty!");
-        return;
-    }
+        let totalAmount = parseInt(
+          document.getElementById("total-amount").innerText
+        );
+        if (!totalAmount) {
+          alert("Cart is empty!");
+          return;
+        }
 
-    fetch("/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: totalAmount, cart }),
-    })
-    .then((res) => res.json())
-    .then((order) => {
-        if (!order || !order.id) throw new Error("Order creation failed");
+        fetch("/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: totalAmount, cart }),
+        })
+          .then((res) => res.json())
+          .then((order) => {
+            if (!order || !order.id) throw new Error("Order creation failed");
 
-        const timestamp = new Date().toISOString(); // Capture order creation time
+            const timestamp = new Date().toISOString(); // Capture order creation time
 
-        // ✅ Store details in cookies securely
-        document.cookie = `order_id=${order.id}; path=/; max-age=3600; SameSite=Strict; Secure`;
-        document.cookie = `order_amount=${totalAmount}; path=/; max-age=3600; SameSite=Strict; Secure`;
-        document.cookie = `order_items=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=3600; SameSite=Strict; Secure`;
-        document.cookie = `order_timestamp=${timestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
+            // ✅ Store details in cookies securely
+            document.cookie = `order_id=${order.id}; path=/; max-age=3600; SameSite=Strict; Secure`;
+            document.cookie = `order_amount=${totalAmount}; path=/; max-age=3600; SameSite=Strict; Secure`;
+            document.cookie = `order_items=${encodeURIComponent(
+              JSON.stringify(cart)
+            )}; path=/; max-age=3600; SameSite=Strict; Secure`;
+            document.cookie = `order_timestamp=${timestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
 
-        console.log("🔍 Debug: Stored Order Details in Cookies", {
-            orderId: order.id,
-            amount: totalAmount,
-            items: cart,
-            timestamp: timestamp,
-        });
+            console.log("🔍 Debug: Stored Order Details in Cookies", {
+              orderId: order.id,
+              amount: totalAmount,
+              items: cart,
+              timestamp: timestamp,
+            });
 
-        const options = {
-            key: "rzp_test_R9tYRWA6Ux3Yhn",
-            amount: totalAmount * 100,
-            currency: "INR",
-            name: "Canteen Payment",
-            order_id: order.id,
-            handler: function (response) {
+            const options = {
+              key: "rzp_test_R9tYRWA6Ux3Yhn",
+              amount: totalAmount * 100,
+              currency: "INR",
+              name: "Canteen Payment",
+              order_id: order.id,
+              handler: function (response) {
                 const paymentTimestamp = new Date().toISOString(); // Capture actual payment completion time
 
                 // ✅ Store payment details in cookies securely
@@ -244,26 +273,26 @@
                 document.cookie = `order_timestamp=${paymentTimestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
 
                 console.log("🔍 Debug: Stored Payment Details in Cookies", {
-                    orderId: order.id,
-                    paymentId: response.razorpay_payment_id,
-                    amount: totalAmount,
-                    timestamp: paymentTimestamp,
+                  orderId: order.id,
+                  paymentId: response.razorpay_payment_id,
+                  amount: totalAmount,
+                  timestamp: paymentTimestamp,
                 });
 
                 window.location.replace("/payment-status.html"); // ✅ Redirect securely
-            },
-            prefill: {
+              },
+              prefill: {
                 name: "Customer",
                 email: "customer@example.com",
                 contact: "9999999999",
-            },
-        };
+              },
+            };
 
-        const rzp1 = new Razorpay(options);
-        rzp1.open();
-    })
-    .catch((err) => console.error("Error creating order:", err));
-});
+            const rzp1 = new Razorpay(options);
+            rzp1.open();
+          })
+          .catch((err) => console.error("Error creating order:", err));
+      });
 
       renderCartItems();
     </script>

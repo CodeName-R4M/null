@@ -1,0 +1,12 @@
+{
+  "silk": {
+    "name": "Silk",
+    "price": "90",
+    "image": "https://lh3.googleusercontent.com/d/1DaeUOqWpwR-2qis8XslfVr2Uz3hmG6bM"
+  },
+  "meals": {
+    "name": "meals",
+    "price": "45",
+    "image": "https://lh3.googleusercontent.com/d/1MW9lVsCaT9L61tmfxLc92507tsKVhFsc"
+  }
+}

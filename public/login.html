@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .login-form {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        text-align: center;
+      }
+      .login-form h2 {
+        margin-bottom: 20px;
+      }
+      .login-form input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .login-form button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+      }
+      .login-form button:hover {
+        background: #218838;
+      }
+      .error-message {
+        color: red;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-form">
+      <h2>Admin Login</h2>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <div id="error-message" class="error-message"></div>
+    </div>
+
+    <script>
+      function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!username || !password) {
+          document.getElementById("error-message").textContent =
+            "Please fill all fields.";
+          return;
+        }
+
+        fetch("/xadminxx/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              window.location.href = "/xadminx"; // Redirect to admin panel
+            } else {
+              document.getElementById("error-message").textContent =
+                "Invalid username or password.";
+            }
+          })
+          .catch((error) => {
+            console.error("Error during login:", error);
+            document.getElementById("error-message").textContent =
+              "An error occurred. Please try again.";
+          });
+      }
+    </script>
+  </body>
+</html>

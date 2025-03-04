@@ -110,7 +110,9 @@
         <h2 id="status-heading">Loading...</h2>
         <p id="order-details">Fetching payment status...</p>
         <div id="items-container" class="items-list"></div>
-        <button class="new-order-btn" onclick="startNewOrder()">New Order</button>
+        <button class="new-order-btn" onclick="startNewOrder()">
+          New Order
+        </button>
       </div>
     </main>
 
@@ -152,32 +154,43 @@
         const itemsContainer = document.getElementById("items-container");
         itemsContainer.innerHTML = "";
 
-        try {
-          const parsedItems = JSON.parse(items);
-          let hasValidItems = false;
+        // Fetch menu items dynamically
+        fetch("/admin/menu")
+          .then((response) => response.json())
+          .then((menuData) => {
+            try {
+              const parsedItems = JSON.parse(items);
+              let hasValidItems = false;
 
-          Object.entries(parsedItems).forEach(([itemName, quantity]) => {
-            if (quantity > 0) {
-              hasValidItems = true;
-              const itemDiv = document.createElement("div");
-              itemDiv.classList.add("item");
-              itemDiv.innerHTML = ` 
-                <img src="${getItemImage(itemName)}" alt="${itemName}">
-                <p><strong>${itemName}</strong> × ${quantity}</p>
-              `;
-              itemsContainer.appendChild(itemDiv);
+              Object.entries(parsedItems).forEach(([itemName, quantity]) => {
+                if (quantity > 0 && menuData[itemName]) {
+                  hasValidItems = true;
+                  const product = menuData[itemName];
+                  const itemDiv = document.createElement("div");
+                  itemDiv.classList.add("item");
+                  itemDiv.innerHTML = ` 
+              <img src="${
+                product.image.includes("drive.google.com")
+                  ? `/proxy-image/${product.image.split("id=")[1]}`
+                  : product.image
+              }" alt="${product.name}" 
+                onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+              <p><strong>${product.name}</strong> × ${quantity}</p>
+            `;
+                  itemsContainer.appendChild(itemDiv);
+                }
+              });
+
+              if (!hasValidItems) {
+                itemsContainer.innerHTML = "<p>No items ordered.</p>";
+              }
+            } catch (error) {
+              console.error("Error parsing items:", error);
+              itemsContainer.innerHTML = "<p>Could not load items.</p>";
             }
-          });
-
-          if (!hasValidItems) {
-            itemsContainer.innerHTML = "<p>No items ordered.</p>";
-          }
-        } catch (error) {
-          console.error("Error parsing items:", error);
-          itemsContainer.innerHTML = "<p>Could not load items.</p>";
-        }
+          })
+          .catch((error) => console.error("Error fetching menu:", error));
       }
-
       function updateUI(status, orderId, paymentId, amount, items, timestamp) {
         const statusHeading = document.getElementById("status-heading");
         const orderDetails = document.getElementById("order-details");
@@ -206,8 +219,8 @@
         const status = getCookie("order_status") || "failed";
         const orderId = getCookie("order_id");
         const paymentId = getCookie("payment_id");
-        const amount = getCookie("order_amount") || "N/A"; 
-        const items = getCookie("order_items") || "{}"; 
+        const amount = getCookie("order_amount") || "N/A";
+        const items = getCookie("order_items") || "{}";
         const timestamp = getCookie("order_timestamp");
 
         if (!orderId || !paymentId) {
@@ -241,10 +254,10 @@
           "payment_id",
           "order_amount",
           "order_items",
-          "order_timestamp"
+          "order_timestamp",
         ];
 
-        cookiesToDelete.forEach(cookie => {
+        cookiesToDelete.forEach((cookie) => {
           document.cookie = `${cookie}=; path=/; max-age=0; SameSite=Strict; Secure`;
         });
 
