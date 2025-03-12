@@ -219,45 +219,46 @@
       document.getElementById("cart-count").innerText = totalItems;
     })
     .catch((error) => console.error("Error fetching menu:", error));
-}function renderCartItems() {
-        const cartItemsContainer = document.getElementById("cart-items");
-        cartItemsContainer.innerHTML = "";
+}
+// function renderCartItems() {
+//         const cartItemsContainer = document.getElementById("cart-items");
+//         cartItemsContainer.innerHTML = "";
 
-        // Fetch menu items dynamically
-        fetch("/admin/menu")
-          .then((response) => response.json())
-          .then((menuData) => {
-            let totalAmount = 0;
-            let totalItems = 0;
+//         fetch("/admin/menu")
+//           .then((response) => response.json())
+//           .then((menuData) => {
+//             let totalAmount = 0;
+//             let totalItems = 0;
 
-            for (let item in cart) {
-              if (cart[item] > 0 && menuData[item]) {
-                const product = menuData[item];
-                const cartItemElement = document.createElement("div");
-                cartItemElement.classList.add("cart-item");
-                cartItemElement.innerHTML = `
-                <img src="/proxy-image/${fileId}" alt="Product Image">
-            <p>${product.name} - ₹${product.price}</p>
-            <div class="quantity">
-              <button class="quantity-decrease" data-item="${item}">-</button>
-              <span id="${item}-quantity">${cart[item]}</span>
-              <button class="quantity-increase" data-item="${item}">+</button>
-            </div>
-          `;
-                cartItemsContainer.appendChild(cartItemElement);
+//             for (let item in cart) {
+//               if (cart[item] > 0 && menuData[item]) {
+//                 const product = menuData[item];
+//                 const cartItemElement = document.createElement("div");
+//                 cartItemElement.classList.add("cart-item");
+//                 cartItemElement.innerHTML = `
+//                 <img src="/proxy-image/${fileId}" alt="Product Image">
+//             <p>${product.name} - ₹${product.price}</p>
+//             <div class="quantity">
+//               <button class="quantity-decrease" data-item="${item}">-</button>
+//               <span id="${item}-quantity">${cart[item]}</span>
+//               <button class="quantity-increase" data-item="${item}">+</button>
+//             </div>
+//           `;
+//                 cartItemsContainer.appendChild(cartItemElement);
 
-                // Calculate total amount and items
-                totalAmount += cart[item] * product.price;
-                totalItems += cart[item];
-              }
-            }
+//                 // Calculate total amount and items
+//                 totalAmount += cart[item] * product.price;
+//                 totalItems += cart[item];
+//               }
+//             }
 
-            // Update total amount and cart count
-            document.getElementById("total-amount").innerText = totalAmount;
-            document.getElementById("cart-count").innerText = totalItems;
-          })
-          .catch((error) => console.error("Error fetching menu:", error));
-      }
+//             // Update total amount and cart count
+//             document.getElementById("total-amount").innerText = totalAmount;
+//             document.getElementById("cart-count").innerText = totalItems;
+//           })
+//           .catch((error) => console.error("Error fetching menu:", error));
+//       }
+
       document.addEventListener("click", function (event) {
         const item = event.target.getAttribute("data-item");
         if (event.target.classList.contains("quantity-increase")) {

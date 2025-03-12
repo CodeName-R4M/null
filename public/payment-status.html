@@ -166,10 +166,26 @@
                 if (quantity > 0 && menuData[itemName]) {
                   hasValidItems = true;
                   const product = menuData[itemName];
+
+                  // Extract fileId from Google Drive URL
+                  let fileId = null;
+                  if (product.image.includes("drive.google.com")) {
+                    const parts = product.image.split("/d/");
+                    if (parts.length > 1) {
+                      fileId = parts[1].split("/")[0]; // Extract the fileId
+                    }
+                  }
+
+                  // Construct the image URL
+                  const imageUrl = fileId
+                    ? `/proxy-image/${fileId}`
+                    : product.image || "/images/placeholder.jpg";
+
                   const itemDiv = document.createElement("div");
                   itemDiv.classList.add("item");
                   itemDiv.innerHTML = ` 
-                  <img src="/proxy-image/${fileId}" alt="Product Image">
+              <img src="${imageUrl}" alt="${product.name}" 
+                onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
               <p><strong>${product.name}</strong> × ${quantity}</p>
             `;
                   itemsContainer.appendChild(itemDiv);
