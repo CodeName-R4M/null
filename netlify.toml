@@ -1,0 +1,8 @@
+[build]
+  functions = "functions"  # Directory where Netlify will look for functions
+  publish = "public"       # Directory for static files
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app"  # Redirect all requests to your Express app
+  status = 200

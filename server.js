@@ -17,6 +17,7 @@ const Client = require("ftp");
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
+const serverless = require("serverless-http");
 
 // Configure Multer for file uploads
 const storage = multer.memoryStorage();
@@ -432,3 +433,4 @@ const PORT = process.env.PORT || 6900;
 app.listen(PORT, () =>
   console.log(`✅ Server running at http://localhost:${PORT}`)
 );
+module.exports.handler = serverless(app);
