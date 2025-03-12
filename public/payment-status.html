@@ -169,12 +169,7 @@
                   const itemDiv = document.createElement("div");
                   itemDiv.classList.add("item");
                   itemDiv.innerHTML = ` 
-              <img src="${
-                product.image.includes("drive.google.com")
-                  ? `/proxy-image/${product.image.split("id=")[1]}`
-                  : product.image
-              }" alt="${product.name}" 
-                onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+                  <img src="/proxy-image/${fileId}" alt="Product Image">
               <p><strong>${product.name}</strong> × ${quantity}</p>
             `;
                   itemsContainer.appendChild(itemDiv);
@@ -239,7 +234,6 @@
 
         updateUI(status, orderId, paymentId, amount, items, timestamp);
       }
-
       function startNewOrder() {
         console.log("🔄 Clearing session storage and cookies for new order...");
 

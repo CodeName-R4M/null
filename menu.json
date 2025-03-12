@@ -1,12 +1,12 @@
 {
-  "silk": {
-    "name": "Silk",
-    "price": "90",
-    "image": "https://lh3.googleusercontent.com/d/1DaeUOqWpwR-2qis8XslfVr2Uz3hmG6bM"
-  },
   "meals": {
-    "name": "meals",
+    "name": "Meals",
     "price": "45",
-    "image": "https://lh3.googleusercontent.com/d/1MW9lVsCaT9L61tmfxLc92507tsKVhFsc"
+    "image": "https://lh3.googleusercontent.com/d/1eWq8vICi9KIMoTRigTnBK5CaPaZme25h"
+  },
+  "biscuit": {
+    "name": "biscuit",
+    "price": "10",
+    "image": "https://lh3.googleusercontent.com/d/1UMfhPmLzfL8fmuFDoJREeBCMyDr0TTtJ"
   }
 }
