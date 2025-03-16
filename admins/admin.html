@@ -131,11 +131,29 @@
       .upload-failed {
         color: red;
       }
+      .staff-panel-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.staff-panel-btn:hover {
+  background: #0056b3;
+}
+
     </style>
   </head>
   <body>
     <nav>
       <div class="logo">Admin Panel</div>
+      <button class="staff-panel-btn" onclick="window.location.href='staff.html'">
+        Go to Staff Panel
+      </button>
+      
       <button class="remove-btn" onclick="logout()">Logout</button>
     </nav>
 
