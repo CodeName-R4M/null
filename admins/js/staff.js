@@ -6,7 +6,7 @@ async function loadOrders() {
     const ordersList = document.getElementById("orders-list");
     ordersList.innerHTML = "";
 
-    orders.forEach((order) => {
+    orders.filter(order => order.status === "PAID").forEach((order) => {
       // Filter out items with quantity 0
       const filteredItems = Object.entries(order.items)
         .filter(([_, quantity]) => quantity > 0)
