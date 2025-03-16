@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://apis.google.com/js/api.js"></script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel</title>
+    <script defer src="js/admin.js"></script>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .product-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 20px;
+      }
+      .product {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        width: 200px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out;
+      }
+      .product:hover {
+        transform: translateY(-10px);
+      }
+      .product img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .product p {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #555;
+      }
+      .remove-btn {
+        background: red;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      .remove-btn:hover {
+        background: darkred;
+      }
+      .add-form {
+        background: white;
+        padding: 20px;
+        max-width: 400px;
+        margin: 20px auto;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .add-form input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .add-form button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .add-form button:hover {
+        background: #218838;
+      }
+      .admin-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .edit-btn {
+        background: transparent;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #28a745;
+        margin-left: 5px;
+      }
+
+      .edit-btn:hover {
+        color: #218838;
+      }
+      #upload-status {
+        font-weight: bold;
+      }
+
+      .uploading {
+        color: orange;
+      }
+
+      .upload-complete {
+        color: green;
+      }
+
+      .upload-failed {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Admin Panel</div>
+      <button class="remove-btn" onclick="logout()">Logout</button>
+    </nav>
+
+    <main>
+      <!-- 🔹 Add New Item Form -->
+      <div class="add-form">
+        <h2>Add New Item</h2>
+        <input type="text" id="item-name" placeholder="Item Name" />
+        <input type="number" id="item-price" placeholder="Price" />
+        <div>
+          <input
+            type="file"
+            id="item-image"
+            accept="image/*"
+            style="display: none"
+            onchange="handleFileSelect(this.files[0])"
+          />
+          <button onclick="document.getElementById('item-image').click()">
+            Choose Image
+          </button>
+          <button onclick="uploadFileToDrive()">Upload</button>
+          <span id="upload-status" style="margin-left: 10px"></span>
+        </div>
+        <input type="hidden" id="uploaded-image-url" />
+        <button id="add-item-btn" onclick="addItem()" disabled>Add Item</button>
+      </div>
+
+      <h2 style="text-align: center">Current Items</h2>
+
+      <!-- 🔹 List of Items -->
+      <div class="product-container" id="product-list"></div>
+    </main>
+
+    <script>
+      // 🔹 Load Items on Page Load
+      document.addEventListener("DOMContentLoaded", loadItems);
+
+      function loadItems() {
+        fetch("/admin/menu")
+          .then((res) => res.json())
+          .then((items) => {
+            const container = document.getElementById("product-list");
+            container.innerHTML = "";
+            Object.keys(items).forEach((id) => {
+              const item = items[id];
+              const div = document.createElement("div");
+              div.className = "product";
+              div.innerHTML = `
+              <img src="/proxy-image/1ZQMdEILi9AAdHhPGzJuAhzeus-tI4E_Z">
+                            <p>${item.name} - ₹${item.price}</p>
+                            <button class="remove-btn" onclick="removeItem('${id}')">Remove</button>
+                        `;
+              container.appendChild(div);
+            });
+          })
+          .catch((error) => console.error("Error loading items:", error));
+      }
+
+      // ✅ Add New Item with Image Upload
+      function addItem() {
+        const name = document.getElementById("item-name").value.trim();
+        const price = document.getElementById("item-price").value.trim();
+        const imageFile = document.getElementById("item-image").files[0];
+
+        if (!name || !price || !imageFile) {
+          alert("Please fill all fields");
+          return;
+        }
+
+        const id = name.toLowerCase().replace(/\s+/g, "-"); // Unique ID
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        formData.append("name", id);
+        formData.append("price", price);
+
+        fetch("/admin/add-item", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              alert("Item added successfully!");
+              loadItems();
+            } else {
+              alert("Error adding item: " + data.message);
+            }
+          })
+          .catch((error) => console.error("Error adding item:", error));
+      }
+
+      // ❌ Remove Item
+      function removeItem(id) {
+        fetch("/admin/remove-item", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              alert("Item removed!");
+              loadItems();
+            } else {
+              alert("Error removing item: " + data.message);
+            }
+          })
+          .catch((error) => console.error("Error removing item:", error));
+      }
+
+      // 🔐 Admin Logout
+      function logout() {
+        document.cookie =
+          "admin_logged_in=; path=/; max-age=0; SameSite=Strict; Secure";
+        window.location.href = "login.html"; // Redirect to login
+      }
+    </script>
+  </body>
+</html>

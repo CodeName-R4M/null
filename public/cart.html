@@ -321,11 +321,13 @@
                 document.cookie = `payment_id=${response.razorpay_payment_id}; path=/; max-age=3600; SameSite=Strict; Secure`;
                 document.cookie = `order_status=success; path=/; max-age=3600; SameSite=Strict; Secure`;
                 document.cookie = `order_timestamp=${paymentTimestamp}; path=/; max-age=3600; SameSite=Strict; Secure`;
+                document.cookie = `razorpay_signature=${response.razorpay_signature}; path=/; max-age=3600; SameSite=Strict; Secure`;
 
                 console.log("🔍 Debug: Stored Payment Details in Cookies", {
                   orderId: order.id,
                   paymentId: response.razorpay_payment_id,
                   amount: totalAmount,
+                  signature: response.razorpay_signature,
                   timestamp: paymentTimestamp,
                 });
 

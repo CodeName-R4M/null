@@ -8,5 +8,10 @@
     "name": "biscuit",
     "price": "10",
     "image": "https://lh3.googleusercontent.com/d/1UMfhPmLzfL8fmuFDoJREeBCMyDr0TTtJ"
+  },
+  "silk": {
+    "name": "silk",
+    "price": "100",
+    "image": "https://lh3.googleusercontent.com/d/10bG93pn9CrosQhlfEedFO5EkyT5DvTPz"
   }
 }

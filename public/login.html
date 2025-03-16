@@ -71,7 +71,7 @@
           return;
         }
 
-        fetch("/xadminxx/login", {
+        fetch("/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password }),
@@ -79,7 +79,7 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
-              window.location.href = "/xadminx"; // Redirect to admin panel
+              window.location.href = "/admin"; // Redirect to admin panel
             } else {
               document.getElementById("error-message").textContent =
                 "Invalid username or password.";

@@ -203,25 +203,67 @@
           .catch((error) => console.error("Error fetching menu:", error));
       }
       function updateUI(status, orderId, paymentId, amount, items, timestamp) {
-        const statusHeading = document.getElementById("status-heading");
-        const orderDetails = document.getElementById("order-details");
+  const statusHeading = document.getElementById("status-heading");
+  const orderDetails = document.getElementById("order-details");
 
-        if (status === "success") {
-          statusHeading.textContent = "Payment Successful!";
-          statusHeading.classList.add("success");
-          orderDetails.innerHTML = `
-            <p><strong>Order ID:</strong> ${orderId}</p>
-            <p><strong>Payment ID:</strong> ${paymentId}</p>
-            <p><strong>Total Paid:</strong> ₹${amount}</p>
-            <p><strong>Order Time:</strong> ${formatTimestamp(timestamp)}</p>
-          `;
-          displayItems(items);
+  if (status === "success") {
+    statusHeading.textContent = "Payment Successful!";
+    statusHeading.classList.add("success");
+    orderDetails.innerHTML = `
+      <p><strong>Order ID:</strong> ${orderId}</p>
+      <p><strong>Payment ID:</strong> ${paymentId}</p>
+      <p><strong>Total Paid:</strong> ₹${amount}</p>
+      <p><strong>Order Time:</strong> ${formatTimestamp(timestamp)}</p>
+    `;
+    displayItems(items);
+
+    // ✅ Fetch `razorpay_signature` from cookies (or Razorpay response)
+    const cookies = document.cookie.split("; ").reduce((acc, cookie) => {
+      const [key, value] = cookie.split("=");
+      acc[key] = decodeURIComponent(value);
+      return acc;
+    }, {});
+
+    const razorpay_signature = getCookie("razorpay_signature");
+ // Make sure this is set after payment
+
+    console.log("📤 Debug: Sending payment details to server...", {
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      order_amount: amount,
+      order_items: JSON.parse(items), // Ensure `order_items` is parsed correctly
+      order_timestamp: timestamp,
+      razorpay_signature
+    });
+
+    // ✅ Send payment details including `razorpay_signature`
+    fetch("/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        order_amount: amount,
+        order_items: typeof items === "string" ? JSON.parse(items) : items,
+        order_timestamp: timestamp,
+        razorpay_signature, // ✅ Now included
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("✅ Payment successfully saved in MongoDB!");
         } else {
-          statusHeading.textContent = "Payment Failed!";
-          statusHeading.classList.add("failure");
-          orderDetails.innerHTML = `<p>Transaction was unsuccessful. Please try again.</p>`;
+          console.error("❌ Failed to save payment:", data.error);
         }
-      }
+      })
+      .catch((err) => console.error("❌ Error sending payment:", err));
+  } else {
+    statusHeading.textContent = "Payment Failed!";
+    statusHeading.classList.add("failure");
+    orderDetails.innerHTML = `<p>Transaction was unsuccessful. Please try again.</p>`;
+  }
+}
 
       function fetchPaymentStatus() {
         console.log("🔍 Debug: Fetching payment details from cookies...");

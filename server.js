@@ -18,23 +18,30 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 const serverless = require("serverless-http");
+const mongoose = require("mongoose");
+
+mongoose
+  .connect(
+    process.env.MONGODB_URI ||
+      "mongodb+srv://sriram:CANTEENnpsb123@ram-cluster.9y8uc.mongodb.net/"
+  )
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+const orderSchema = new mongoose.Schema({
+  orderId: { type: String, required: true },
+  paymentId: { type: String, required: true },
+  amount: { type: Number, required: true },
+  items: { type: Object, required: true },
+  timestamp: { type: Date, default: Date.now },
+  status: { type: String, default: "PAID" }, // ✅ Default status is "PAID"
+});
+
+const Order = mongoose.model("Order", orderSchema);
 
 // Configure Multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 const sharp = require("sharp");
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' 'strict-dynamic' https://apis.google.com https://checkout.razorpay.com; " +
-      "connect-src 'self' https://www.googleapis.com https://lh3.googleusercontent.com https://drive.google.com; " +
-      "img-src 'self' data: blob: https://lh3.googleusercontent.com https://drive.google.com; " +
-      "frame-src https://drive.google.com https://checkout.razorpay.com; " +
-      "style-src 'self' 'unsafe-inline';"
-  );
-  next();
-});
 
 // Google Drive API setup
 const { google } = require("googleapis");
@@ -93,11 +100,12 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "supersecretkey",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false, // 🔴 Prevents setting session until login
     cookie: {
-      secure: process.env.NODE_ENV === "production", // make sure this is set properly
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 30 * 60 * 1000, // Set session timeout to 30 minutes
+      secure: false, // ❌ If using HTTP, set to false (for HTTPS, use true)
+      sameSite: "Lax",
+      httpOnly: true,
+      maxAge: 30 * 60 * 1000, // ⏳ Default session: 30 minutes
     },
   })
 );
@@ -149,9 +157,70 @@ app.get("/cart.html", (req, res) =>
 app.get("/payment-status.html", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "payment-status.html"))
 );
-app.get("/xadminx", (req, res) =>
-  res.sendFile(path.join(__dirname, "public", "admin.html"))
-);
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "admins"));
+// Ensure staff.html is inside 'public'
+function isAuthenticated(req, res, next) {
+  if (req.session.user && req.session.user.role === "admin") {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+
+app.get("/admin", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "admins", "admin.html"));
+});
+
+app.get("/staff", isAuthenticated, (req, res) => {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  res.render(path.join(__dirname, "admins", "staff.ejs"), { nonce });
+});
+app.get("/js/admin.js", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "admins", "js", "admin.js"));
+});
+
+app.get("/js/staff.js", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "admins", "js", "staff.js"));
+});
+
+// ✅ Fixed login route (No Hashing, Uses .env)
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+
+  if (
+    username === process.env.ADMIN_USERNAME &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    req.session.user = { username, role: "admin" }; // ✅ Store user in session
+    req.session.cookie.maxAge = 60 * 60 * 1000; // ✅ 1-hour session
+    return res.json({ success: true });
+  }
+
+  res
+    .status(401)
+    .json({ success: false, error: "Invalid username or password" });
+});
+
+app.use((req, res, next) => {
+  if (req.session.lastAccess) {
+    const maxAge =
+      req.session.userRole === "admin" ? 60 * 60 * 1000 : 30 * 60 * 1000;
+
+    if (Date.now() - req.session.lastAccess > maxAge) {
+      req.session.destroy();
+    }
+  }
+  req.session.lastAccess = Date.now();
+  next();
+});
+
+// ✅ Logout Route (Redirect to login page)
+app.post("/admin/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/login.html");
+  });
+});
+
 const menuFilePath = path.join(__dirname, "menu.json");
 
 function loadMenu() {
@@ -221,7 +290,7 @@ app.get("/item-prices", (req, res) => {
 
 // Admin APIs
 app.get("/admin/menu", (req, res) => {
-  console.log("🔍 Debug: Menu Data Sent:", req.session.menu);
+  // console.log("🔍 Debug: Menu Data Sent:", req.session.menu);
   res.json(req.session.menu);
 });
 app.post("/admin/add-item", upload.single("image"), async (req, res) => {
@@ -387,13 +456,29 @@ app.post("/checkout", async (req, res) => {
 // Verify Razorpay Payment
 app.post("/verify-payment", async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      order_amount,
+      order_items,
+      order_timestamp,
+    } = req.body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    console.log("📥 Received payment verification request:", req.body);
+
+    if (
+      !razorpay_order_id ||
+      !razorpay_payment_id ||
+      !razorpay_signature ||
+      !order_amount ||
+      !order_items
+    ) {
+      console.error("❌ Missing payment details!", req.body);
       return res.status(400).json({ error: "Missing payment details" });
     }
 
+    // ✅ Verify Razorpay Signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -401,20 +486,26 @@ app.post("/verify-payment", async (req, res) => {
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      req.session.paymentStatus = {
-        orderId: razorpay_order_id,
-        status: "FAILED",
-      };
+      console.error("❌ Invalid payment signature!");
       return res.status(400).json({ error: "Invalid payment signature" });
     }
 
-    req.session.paymentStatus = {
+    // ✅ Ensure `order_items` is an object
+    const parsedItems =
+      typeof order_items === "string" ? JSON.parse(order_items) : order_items;
+
+    // ✅ Store order in MongoDB
+    const order = new Order({
       orderId: razorpay_order_id,
-      status: "SUCCESS",
       paymentId: razorpay_payment_id,
-      amount: req.session.paymentStatus.amount || 0,
-      items: req.session.paymentStatus.items || {},
-    };
+      amount: order_amount,
+      items: parsedItems,
+      timestamp: order_timestamp ? new Date(order_timestamp) : Date.now(),
+      status: "PAID", // ✅ Initially set to "PAID"
+    });
+
+    await order.save();
+    console.log("✅ Payment saved in MongoDB!");
 
     res.json({ success: true });
   } catch (error) {
@@ -423,10 +514,47 @@ app.post("/verify-payment", async (req, res) => {
   }
 });
 
+// ✅ Update staff orders route to show only successful ones
+app.get("/staff/orders", isAuthenticated, async (req, res) => {
+  try {
+    const orders = await Order.find({
+      status: { $in: ["PAID", "DELIVERED"] },
+    }).sort({ timestamp: -1 });
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Error fetching orders:", error);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
 // Get Payment Status
 app.get("/payment-status", (req, res) =>
   res.json(req.session.paymentStatus || { status: "NOT_FOUND" })
 );
+app.post("/update-order-status", async (req, res) => {
+  try {
+    const { orderId, status } = req.body;
+
+    if (!orderId || !status) {
+      return res.status(400).json({ error: "Missing orderId or status" });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { orderId },
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    console.log(`✅ Order ${orderId} status updated to ${status}`);
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error("❌ Error updating order status:", error);
+    res.status(500).json({ error: "Failed to update order status" });
+  }
+});
 
 // Start Server
 const PORT = process.env.PORT || 6900;
