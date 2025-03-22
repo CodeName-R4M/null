@@ -10,6 +10,7 @@ const fetch = require("node-fetch");
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/admins", express.static(path.join(__dirname, "admins")));
 const cors = require("cors");
 app.use(cors());
 const multer = require("multer");
@@ -19,6 +20,19 @@ if (!fs.existsSync(tempDir)) {
 }
 const serverless = require("serverless-http");
 const mongoose = require("mongoose");
+const STAFF_DB = path.join(__dirname, "admins", "jsonf", "staff.json");
+const DOTC_DB = path.join(__dirname, "admins", "jsonf", "dotc.json");
+const ADMIN_DB = path.join(__dirname, "admins", "jsonf", "admin.json");
+const ACCESS_DB = path.join(__dirname, "admins", "jsonf", "access.json");
+
+if (!fs.existsSync(ADMIN_DB))
+  fs.writeFileSync(ADMIN_DB, JSON.stringify({}), "utf-8");
+if (!fs.existsSync(ACCESS_DB))
+  fs.writeFileSync(ACCESS_DB, JSON.stringify({}), "utf-8");
+if (!fs.existsSync(STAFF_DB))
+  fs.writeFileSync(STAFF_DB, JSON.stringify({}), "utf-8");
+if (!fs.existsSync(DOTC_DB))
+  fs.writeFileSync(DOTC_DB, JSON.stringify({}), "utf-8");
 
 mongoose
   .connect(
@@ -161,17 +175,33 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "admins"));
 // Ensure staff.html is inside 'public'
 function isAuthenticated(req, res, next) {
-  if (req.session.user && req.session.user.role === "admin") {
+  if (
+    req.session.user &&
+    (req.session.user.role === "admin" ||
+      req.session.user.role === "staff" ||
+      req.session.user.role === "access")
+  ) {
     return next();
   }
   res.redirect("/login.html");
 }
-
-app.get("/admin", isAuthenticated, (req, res) => {
+function isAdmin(req, res, next) {
+  if (
+    req.session.user &&
+    (req.session.user.role === "admin" || req.session.user.role === "access")
+  ) {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+app.get("/admin/orders-log", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "admins", "order_log.html"));
+});
+app.get("/admin", isAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "admins", "admin.html"));
 });
 
-app.get("/staff", isAuthenticated, (req, res) => {
+app.get("/staff", isStaff, (req, res) => {
   const nonce = crypto.randomBytes(16).toString("base64");
   res.render(path.join(__dirname, "admins", "staff.ejs"), { nonce });
 });
@@ -187,19 +217,85 @@ app.get("/js/staff.js", isAuthenticated, (req, res) => {
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  if (
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
+  let admins = JSON.parse(fs.readFileSync(ADMIN_DB, "utf-8"));
+  let staffs = JSON.parse(fs.readFileSync(STAFF_DB, "utf-8"));
+  let accessAdmins = JSON.parse(fs.readFileSync(ACCESS_DB, "utf-8"));
+
+  let userRole = null;
+  if (admins[username] && admins[username].password === password) {
+    userRole = "admin";
+  } else if (staffs[username] && staffs[username].password === password) {
+    userRole = "staff";
+  } else if (
+    accessAdmins[username] &&
+    accessAdmins[username].password === password
   ) {
-    req.session.user = { username, role: "admin" }; // ✅ Store user in session
-    req.session.cookie.maxAge = 60 * 60 * 1000; // ✅ 1-hour session
-    return res.json({ success: true });
+    userRole = "access";
+  } else {
+    return res
+      .status(401)
+      .json({ success: false, error: "Invalid username or password" });
   }
 
-  res
-    .status(401)
-    .json({ success: false, error: "Invalid username or password" });
+  // ✅ Generate a DOTC for the user
+  const dotc = crypto.randomBytes(16).toString("hex");
+
+  // ✅ Store DOTC in the session
+  req.session.user = { username, role: userRole, dotc };
+
+  console.log(
+    `✅ DOTC generated and stored for ${username} (${userRole}): ${dotc}`
+  );
+  res.json({ success: true, redirect: `/${userRole}` });
 });
+
+function isStaff(req, res, next) {
+  if (
+    req.session.user &&
+    (req.session.user.role === "staff" ||
+      req.session.user.role === "access" ||
+      req.session.user.role === "admin")
+  ) {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+function isAdmin(req, res, next) {
+  if (
+    req.session.user &&
+    (req.session.user.role === "admin" || req.session.user.role === "access")
+  ) {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+function isAccessOnly(req, res, next) {
+  if (req.session.user && req.session.user.role === "access") {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+
+function isAccessAdmin(req, res, next) {
+  if (req.session.user && req.session.user.role === "access") {
+    return next();
+  }
+  res.redirect("/login.html");
+}
+
+app.get("/access", isAccessOnly, (req, res) => {
+  res.sendFile(path.join(__dirname, "admins", "access.html"));
+});
+function verifyDOTC(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: "Unauthorized" });
+
+  const storedDOTC = req.session.user.dotc;
+  if (!storedDOTC) return res.status(403).json({ error: "No DOTC found" });
+
+  console.log(`✅ Verified DOTC for ${req.session.user.username}`);
+  next();
+}
+
 
 app.use((req, res, next) => {
   if (req.session.lastAccess) {
@@ -215,11 +311,16 @@ app.use((req, res, next) => {
 });
 
 // ✅ Logout Route (Redirect to login page)
-app.post("/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/login.html");
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Logout failed" });
+    }
+    res.clearCookie("connect.sid"); // Clear session cookie
+    res.json({ success: true, message: "Logged out successfully!" });
   });
 });
+
 
 const menuFilePath = path.join(__dirname, "menu.json");
 
@@ -530,7 +631,7 @@ app.get("/staff/orders", isAuthenticated, async (req, res) => {
 app.get("/payment-status", (req, res) =>
   res.json(req.session.paymentStatus || { status: "NOT_FOUND" })
 );
-app.post("/update-order-status", async (req, res) => {
+app.post("/update-order-status", verifyDOTC, async (req, res) => {
   try {
     const { orderId, status } = req.body;
 
@@ -555,7 +656,110 @@ app.post("/update-order-status", async (req, res) => {
     res.status(500).json({ error: "Failed to update order status" });
   }
 });
+app.get("/access/admins", (req, res) => {
+  if (!fs.existsSync(ADMIN_DB)) return res.json([]);
+  const admins = JSON.parse(fs.readFileSync(ADMIN_DB, "utf-8"));
 
+  // ✅ Ensure the correct format is returned
+  if (typeof admins !== "object" || Array.isArray(admins)) {
+    console.error("❌ ERROR: `admins.json` is in the wrong format!");
+    return res.status(500).json({ error: "Invalid admins.json format" });
+  }
+
+  const adminList = Object.keys(admins).map((username) => ({
+    username,
+    password: admins[username]?.password || "N/A",
+  }));
+
+  res.json(adminList);
+});
+
+app.get("/access/staff", (req, res) => {
+  if (!fs.existsSync(STAFF_DB)) return res.json([]);
+  const staff = JSON.parse(fs.readFileSync(STAFF_DB, "utf-8"));
+
+  // ✅ Ensure the correct format is returned
+  if (typeof staff !== "object" || Array.isArray(staff)) {
+    console.error("❌ ERROR: `staff.json` is in the wrong format!");
+    return res.status(500).json({ error: "Invalid staff.json format" });
+  }
+
+  const staffList = Object.keys(staff).map((username) => ({
+    username,
+    password: staff[username]?.password || "N/A",
+  }));
+
+  res.json(staffList);
+});
+
+app.post("/access/add-admin", isAccessAdmin, (req, res) => {
+  const { username, password } = req.body;
+  let admins = JSON.parse(fs.readFileSync(ADMIN_DB, "utf-8"));
+
+  if (admins[username]) {
+    return res.status(400).json({ error: "Admin already exists" });
+  }
+
+  admins[username] = { password };
+  fs.writeFileSync(ADMIN_DB, JSON.stringify(admins));
+
+  res.json({ success: true, message: "Admin added successfully!" });
+});
+app.get("/access/admins", (req, res) => {
+  if (!fs.existsSync(ADMIN_DB)) return res.json([]);
+  const admins = JSON.parse(fs.readFileSync(ADMIN_DB, "utf-8"));
+
+  // Convert the object into an array of { username, password } objects
+  const adminList = Object.keys(admins).map((username) => ({
+    username,
+    password: admins[username].password,
+  }));
+
+  res.json(adminList);
+});
+
+app.get("/access/staff", (req, res) => {
+  if (!fs.existsSync(STAFF_DB)) return res.json([]);
+  const staff = JSON.parse(fs.readFileSync(STAFF_DB, "utf-8"));
+
+  // Convert the object into an array of { username, password } objects
+  const staffList = Object.keys(staff).map((username) => ({
+    username,
+    password: staff[username].password,
+  }));
+
+  res.json(staffList);
+});
+
+app.post("/access/add-staff", isAccessAdmin, (req, res) => {
+  const { username, password } = req.body;
+  let staffs = JSON.parse(fs.readFileSync(STAFF_DB, "utf-8"));
+
+  if (staffs[username]) {
+    return res.status(400).json({ error: "Staff already exists" });
+  }
+
+  staffs[username] = { password };
+  fs.writeFileSync(STAFF_DB, JSON.stringify(staffs));
+
+  res.json({ success: true, message: "Staff added successfully!" });
+});
+
+app.post("/access/change-password", isAccessAdmin, (req, res) => {
+  const { username, newPassword, role } = req.body;
+
+  let dbFile = role === "admin" ? ADMIN_DB : STAFF_DB;
+  let users = JSON.parse(fs.readFileSync(dbFile, "utf-8"));
+
+  if (!users[username]) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  users[username].password = newPassword;
+  fs.writeFileSync(dbFile, JSON.stringify(users));
+
+  res.json({ success: true, message: "Password updated successfully!" });
+});
 // Start Server
 const PORT = process.env.PORT || 6900;
 app.listen(PORT, () =>

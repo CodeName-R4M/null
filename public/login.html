@@ -79,16 +79,11 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
-              window.location.href = "/admin"; // Redirect to admin panel
+              window.location.href = data.redirect; // ✅ Redirect based on server response
             } else {
               document.getElementById("error-message").textContent =
                 "Invalid username or password.";
             }
-          })
-          .catch((error) => {
-            console.error("Error during login:", error);
-            document.getElementById("error-message").textContent =
-              "An error occurred. Please try again.";
           });
       }
     </script>

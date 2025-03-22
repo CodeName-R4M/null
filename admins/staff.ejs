@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Staff Panel</title>
     <style>
+      /* General Styles */
       body {
         font-family: "Poppins", sans-serif;
         background: #f4f4f4;
@@ -25,6 +26,34 @@
         font-size: 28px;
         font-weight: bold;
       }
+      .nav-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .log-btn,
+      .back-btn {
+        background: #ff9800;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        cursor: pointer;
+        border-radius: 6px;
+        font-weight: bold;
+        transition: all 0.2s ease-in-out;
+      }
+      .remove-btn {
+        background: red;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .remove-btn:hover {
+        background: darkred;
+      }
+
       .order-container {
         padding: 20px;
       }
@@ -34,21 +63,21 @@
         border-radius: 12px;
         margin-bottom: 15px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out;
       }
-      .order h3, .order p {
+      .order:hover {
+        transform: translateY(-3px);
+      }
+      .order h3,
+      .order p {
         margin: 5px 0;
       }
       .items-list {
         display: none;
         margin-top: 10px;
       }
-      .item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 5px;
-      }
-      .toggle-btn, .deliver-btn {
+      .toggle-btn,
+      .deliver-btn {
         background: #007bff;
         color: white;
         padding: 8px 12px;
@@ -56,12 +85,88 @@
         cursor: pointer;
         border-radius: 6px;
         margin-top: 10px;
+        transition: all 0.3s ease-in-out;
       }
-      .toggle-btn:hover, .deliver-btn:hover {
+      .toggle-btn:hover,
+      .deliver-btn:hover {
         background: #0056b3;
       }
       .delivered {
         background: green !important;
+      }
+
+      /* Modal Styling */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        width: 320px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      .modal-buttons {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 15px;
+      }
+      .modal-buttons button {
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        border-radius: 6px;
+        transition: all 0.2s ease-in-out;
+      }
+      #confirmYes {
+        background: green;
+        color: white;
+      }
+      #confirmYes:hover {
+        background: darkgreen;
+      }
+      #confirmNo {
+        background: red;
+        color: white;
+      }
+      #confirmNo:hover {
+        background: darkred;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .remove-btn {
+        background: red;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .remove-btn:hover {
+        background: darkred;
       }
     </style>
     <script defer src="js/staff.js"></script>
@@ -69,10 +174,58 @@
   <body>
     <nav>
       <div class="logo">Staff Panel</div>
+      <div class="nav-buttons">
+        <button class="log-btn" onclick="location.href='/admin/orders-log'">
+          📜 View Order Log
+        </button>
+        <button class="remove-btn" onclick="logout()">Logout</button>
+      </div>
     </nav>
     <main class="order-container">
       <h2>Orders</h2>
       <div id="orders-list"></div>
     </main>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <h3>Confirm Delivery</h3>
+        <p>Are you sure you want to mark this order as delivered?</p>
+        <div class="modal-buttons">
+          <button id="confirmYes" onclick="confirmDelivery()">
+            ✔ Yes, Deliver
+          </button>
+          <button id="confirmNo" onclick="closeConfirmModal()">
+            ❌ Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      function logout() {
+        document.cookie =
+          "staff_logged_in=; path=/; max-age=0; SameSite=Strict; Secure";
+        window.location.href = "login.html"; // Redirect to login
+      }
+      async function logout() {
+        try {
+          const response = await fetch("/logout", {
+            method: "POST",
+            credentials: "same-origin", // ✅ Ensure cookies are sent with the request
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            window.location.href = "/login.html"; // Redirect to login page
+          } else {
+            alert("Logout failed. Please try again.");
+          }
+        } catch (error) {
+          console.error("Error logging out:", error);
+          alert("An error occurred while logging out.");
+        }
+      }
+    </script>
   </body>
 </html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Control</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      nav {
+        background: #1e1e1e;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        text-align: center;
+        color: #1e1e1e;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+      }
+      input,
+      select,
+      button {
+        padding: 10px;
+        font-size: 16px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      button {
+        background: #28a745;
+        color: white;
+        cursor: pointer;
+        border: none;
+      }
+      button:hover {
+        background: #218838;
+      }
+      .remove-btn {
+        background: red;
+        color: white;
+        cursor: pointer;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        margin-left: 10px;
+      }
+      .remove-btn:hover {
+        background: darkred;
+      }
+      .user-list {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">Access Control Panel</div>
+      <button class="remove-btn" onclick="logout()">Logout</button>
+    </nav>
+
+    <div class="container">
+      <h2>Add Admin</h2>
+      <div class="form-group">
+        <input type="text" id="adminUser" placeholder="Username" />
+        <input type="password" id="adminPass" placeholder="Password" />
+        <button onclick="addAdmin()">Add Admin</button>
+      </div>
+
+      <h2>Current Admins</h2>
+      <div id="adminList" class="user-list"></div>
+
+      <h2>Add Staff</h2>
+      <div class="form-group">
+        <input type="text" id="staffUser" placeholder="Username" />
+        <input type="password" id="staffPass" placeholder="Password" />
+        <button onclick="addStaff()">Add Staff</button>
+      </div>
+
+      <h2>Current Staff</h2>
+      <div id="staffList" class="user-list"></div>
+
+      <h2>Change Password</h2>
+      <div class="form-group">
+        <input type="text" id="changeUser" placeholder="Username" />
+        <input type="password" id="newPass" placeholder="New Password" />
+        <select id="roleSelect">
+          <option value="admin">Admin</option>
+          <option value="staff">Staff</option>
+        </select>
+        <button onclick="changePassword()">Change Password</button>
+      </div>
+    </div>
+
+    <script>
+      async function addAdmin() {
+        const username = document.getElementById("adminUser").value;
+        const password = document.getElementById("adminPass").value;
+        const res = await fetch("/access/add-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        if (res.ok) {
+          alert("Admin Added!");
+          document.getElementById("adminUser").value = "";
+          document.getElementById("adminPass").value = "";
+          loadUsers(); // ✅ Reload user list
+        } else {
+          alert("Failed to add admin.");
+        }
+      }
+
+      async function addStaff() {
+        const username = document.getElementById("staffUser").value;
+        const password = document.getElementById("staffPass").value;
+        const res = await fetch("/access/add-staff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        if (res.ok) {
+          alert("Staff Added!");
+          document.getElementById("staffUser").value = "";
+          document.getElementById("staffPass").value = "";
+          loadUsers(); // ✅ Reload user list
+        } else {
+          alert("Failed to add staff.");
+        }
+      }
+
+      async function changePassword() {
+        const username = document.getElementById("changeUser").value;
+        const newPassword = document.getElementById("newPass").value;
+        const role = document.getElementById("roleSelect").value;
+        const res = await fetch("/access/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, newPassword, role }),
+        });
+        if (res.ok) {
+          alert("Password Updated!");
+        } else {
+          alert("Failed to update password.");
+        }
+      }
+
+      async function loadUsers() {
+        const adminList = document.getElementById("adminList");
+        const staffList = document.getElementById("staffList");
+
+        adminList.innerHTML = "<p>Loading...</p>";
+        staffList.innerHTML = "<p>Loading...</p>";
+
+        try {
+          const [adminRes, staffRes] = await Promise.all([
+            fetch("/access/admins"),
+            fetch("/access/staff"),
+          ]);
+
+          const admins = adminRes.ok ? await adminRes.json() : [];
+          const staff = staffRes.ok ? await staffRes.json() : [];
+
+          console.log("🔍 Admins received:", JSON.stringify(admins, null, 2));
+          console.log("🔍 Staff received:", JSON.stringify(staff, null, 2));
+
+          if (!Array.isArray(admins) || !admins.length) {
+            adminList.innerHTML = "<p style='color: red;'>No Admins</p>";
+          } else {
+            adminList.innerHTML = admins
+              .map(
+                (user) =>
+                  `<p>${user.username} - <b>Password:</b> ${user.password} 
+                <button class="remove-btn" onclick="removeUser('${user.username}', 'admin')">Remove</button></p>`
+              )
+              .join("");
+          }
+
+          if (!Array.isArray(staff) || !staff.length) {
+            staffList.innerHTML = "<p style='color: red;'>No Staff</p>";
+          } else {
+            staffList.innerHTML = staff
+              .map(
+                (user) =>
+                  `<p>${user.username} - <b>Password:</b> ${user.password} 
+                <button class="remove-btn" onclick="removeUser('${user.username}', 'staff')">Remove</button></p>`
+              )
+              .join("");
+          }
+        } catch (error) {
+          console.error("❌ Error fetching users:", error);
+          adminList.innerHTML =
+            "<p style='color: red;'>Failed to load admins</p>";
+          staffList.innerHTML =
+            "<p style='color: red;'>Failed to load staff</p>";
+        }
+      }
+
+      async function removeUser(username, role) {
+        if (!confirm(`Are you sure you want to remove ${username}?`)) return;
+        const res = await fetch("/access/remove-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, role }),
+        });
+        if (res.ok) {
+          alert(`${role} removed successfully!`);
+          loadUsers();
+        } else {
+          alert(`Failed to remove ${role}.`);
+        }
+      }
+
+      function logout() {
+        fetch("/logout", { method: "POST" }).then(() => {
+          window.location.href = "/login.html";
+        });
+      }
+
+      loadUsers();
+    </script>
+  </body>
+</html>
