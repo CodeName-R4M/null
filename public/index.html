@@ -5,21 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canteen</title>
     <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
   </head>
   <body>
     <nav>
       <div class="logo">Canteen</div>
       <div class="top-right">
-        <div class="placeholder-img"></div>
+        <div class="placeholder-img">
+          <img src="/images/placeholderdp.jpg"  alt="dp" draggable="false">
+        </div>
         <div class="cart-container">
           <a href="cart.html">
-            <img src="images/cart.png" alt="Cart" id="cart-icon" />
+              <i class="fa-solid fa-cart-shopping fa-2x" id="cart-icon"></i>
             <span id="cart-count">0</span>
           </a>
         </div>
       </div>
     </nav>
 
+    
     <main class="product-container" id="product-container">
       <!-- Product Template will be injected dynamically -->
     </main>
@@ -53,11 +57,11 @@
         })
         .catch((error) => console.error("Error fetching menu:", error));
 
-        function updateProductDisplay(item, product) {
-  const productContainer = document.getElementById("product-container");
-  const productElement = document.createElement("div");
-  productElement.classList.add("product");
-  productElement.innerHTML = ` 
+      function updateProductDisplay(item, product) {
+        const productContainer = document.getElementById("product-container");
+        const productElement = document.createElement("div");
+        productElement.classList.add("product");
+        productElement.innerHTML = ` 
     <img src="${
       product.image.includes("drive.google.com")
         ? `/proxy-image/${product.image.split("id=")[1]}`
@@ -71,8 +75,8 @@
       <button onclick="updateQuantity('${item}', 1)">+</button>
     </div>
   `;
-  productContainer.appendChild(productElement);
-}
+        productContainer.appendChild(productElement);
+      }
       function updateQuantity(item, change) {
         if (cart[item] + change >= 0) {
           cart[item] += change;
