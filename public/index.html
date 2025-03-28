@@ -253,38 +253,35 @@
         .catch((error) => console.error("Error fetching menu:", error));
 
       function updateProductDisplay(item, product) {
-        const productContainer = document.getElementById("product-container");
-        const productElement = document.createElement("div");
-        productElement.classList.add("product", "d-flex","m-3","align-items-center","mb-4");
-        productElement.innerHTML = ` 
-        
-      <img src="${
-        product.image.includes("drive.google.com")
-          ? /proxy-image/${product.image.split("id=")[1]}
-          : product.image
-      }" alt="${product.name}" 
-        onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+  const productContainer = document.getElementById("product-container");
+  const productElement = document.createElement("div");
+  productElement.classList.add("product", "d-flex", "m-3", "align-items-center", "mb-4");
 
-    <div class"d-flex">
+  let imageSrc = product.image.includes("drive.google.com")
+    ? `/proxy-image/${product.image.split("id=")[1]}`
+    : product.image;
 
-    <p> ${product.name} </p>
+  productElement.innerHTML = `
+    <img src="${imageSrc}" alt="${product.name}" 
+      onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
 
-    <p class="des"> description </p>
+    <div class="d-flex">
+      <p>${product.name}</p>
+      <p class="des">description</p>
 
-    <div class="quantity">
-      <button onclick="updateQuantity('${item}', -1)">-</button>
-      <span id="${item}-count">${cart[item] || 0}</span>
-      <button onclick="updateQuantity('${item}', 1)">+</button>
+      <div class="quantity">
+        <button onclick="updateQuantity('${item}', -1)">-</button>
+        <span id="${item}-count">${cart[item] || 0}</span>
+        <button onclick="updateQuantity('${item}', 1)">+</button>
+      </div>
     </div>
 
-    </div>
-
-    <p class="price-font"> ₹${product.price}</p>
-
-
+    <p class="price-font">₹${product.price}</p>
   `;
-        productContainer.appendChild(productElement);
-      }
+
+  productContainer.appendChild(productElement);
+}
+
       function updateQuantity(item, change) {
         if (cart[item] + change >= 0) {
           cart[item] += change;
