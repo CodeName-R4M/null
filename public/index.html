@@ -286,7 +286,8 @@
         if (cart[item] + change >= 0) {
           cart[item] += change;
           // Update the quantity display
-          document.getElementById(${item}-count).textContent = cart[item];
+         document.getElementById(`${item}-count`).textContent = cart[item];
+
 
           // Update the total count
           updateCartCount();
