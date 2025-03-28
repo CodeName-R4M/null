@@ -260,7 +260,7 @@
         
       <img src="${
         product.image.includes("drive.google.com")
-          ? `/proxy-image/${product.image.split("id=")[1]}`
+          ? /proxy-image/${product.image.split("id=")[1]}
           : product.image
       }" alt="${product.name}" 
         onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
@@ -289,7 +289,7 @@
         if (cart[item] + change >= 0) {
           cart[item] += change;
           // Update the quantity display
-          document.getElementById(`${item}-count`).textContent = cart[item];
+          document.getElementById(${item}-count).textContent = cart[item];
 
           // Update the total count
           updateCartCount();
