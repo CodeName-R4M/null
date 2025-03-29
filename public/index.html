@@ -14,15 +14,13 @@
   <body>
     <header style="color: #d57b0e">
       <div class="container-fluid">
-        <nav class="navbar navbar-expand justify-content-md-around">
-
+        <nav class="navbar navbar-expand-lg d-flex justify-content-between align-items-center">
           
-          <a href="/">
+          <a class="ms-lg-5 " href="/">
             <img class="logo" src="/images/logo.png" alt="canteenlogo" draggable="false"/>
           </a>
          
-
-          <div class="d-none d-md-flex align-items-center">
+          <div class="header-item-hide d-none d-block d-md-flex align-items-center ms-lg-5 ">
             <i class="fa-regular fa-clock  fs-1"></i>
             <div class="ms-2">
               <p class="text-dark mb-0">Mon to Fri: 10:00-4:00</p>
@@ -30,22 +28,21 @@
             </div>
           </div>
 
-          <div>
-            <h2>CANTEEN</h2>
+          <div class="text-center flex-grow-1">
+            <h2 class="m-0">CANTEEN</h2>
           </div>
 
-          <div class="ps-4 ps-sm-4 ps-md-0 ps-lg-0 ms-sm-3">
+          <div class="addressblock ps-4 ps-sm-4 ps-md-0 ps-lg-0 ms-sm-3 me-lg-5 ">
             
-            <div class="d-flex d-sm-flex d-md-none d-lg-none align-items-center gap-2">
+            <div class="header-item-hide d-flex d-xs-block d-md-none d-lg-none align-items-center gap-2">
               <i class="fa-regular fa-clock fs-1"></i>
-
               <div>
                 <p class="text-dark mb-0 headertime">Mon to Fri: 10:00-4:00</p>
                 <p class="text-dark mb-0 headertime">Sat : 10:00-4:00</p>
               </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2 mt-2">
+            <div class="header-item-hide d-flex align-items-center gap-2 mt-2">
               <i class="fa-solid fa-location-dot fs-1"></i>
               <div class="ms-2">
                 <p class="text-dark mb-0 headeraddress">Velachery Main Road, Santhosapuram,</p>
@@ -58,9 +55,24 @@
       </div>
     </header>
 
-    <nav class="navbar navbar-expand fs-5 shadow" style="background-color: #d57b0e;">
+    <nav class="navbar navbar-expand-lg fs-5 shadow" style="background-color: #d57b0e;">
+      <div class="container-fluid">
+
+        <div class="cart-container order-lg-2  ms-auto me-3">
+          <a href="cart.html">
+            <i class="fa-solid fa-cart-shopping text-white" id="cart-icon"></i>
+            <span class=" text-white" id="cart-count">0</span>
+          </a>
+        </div>
       
-      <div class="flex-grow-1 d-flex justify-content-center">
+      <!-- Menu Button for Mobile -->
+      <button class="navbar-toggler flex-auto order-lg-1" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    
+
+      <div class="collapse navbar-collapse order-lg-1" id="navbarSupportedContent">
+      <div class="flex-grow-1 d-flex justify-content-start  justify-content-md-start">
         <ul class="navbar-nav gap-md-4 gap-sm-1 gap-xs-2 gap-lg-5">
           <li class="nav-item">
             <a class="nav-link text-white" href="/">Home</a>
@@ -74,27 +86,22 @@
           <li class="nav-item">
             <a class="nav-link text-white" href="#">Gallery</a>
           </li>
-          <li class="nav-item d-none d-sm-block">
+          <li class="nav-item">
             <a class="nav-link text-white" href="#">Blog</a>
           </li>
-          <li class="nav-item d-none d-sm-block">
+          <li class="nav-item">
             <a class="nav-link text-white" href="#">Places</a>
           </li>
-          <li class="nav-item d-none d-sm-block">
+          <li class="nav-item">
             <a class="nav-link text-white" href="#">Contact Us</a>
           </li>
         </ul>
       </div>
-
-     
-        <div class="cart-container ms-auto me-4">
-          <a href="cart.html">
-            <i class="fa-solid fa-cart-shopping text-white" id="cart-icon"></i>
-            <span class=" text-white" id="cart-count">0</span>
-          </a>
-        </div>
+    </div>
+ 
 
 
+  </div>
     </nav>
 
     <section class="container lg-shadow min-vh-100 d-flex flex-column px-0">
@@ -193,7 +200,7 @@
               <hr class=" border border-2 border-dark custom-line">
             </div>
 
-            <main class="product-container " id="product-container">
+            <main class="container-fluid" id="product-container">
               <!-- Product Template will be injected dynamically -->
             </main>
 
@@ -253,41 +260,66 @@
         .catch((error) => console.error("Error fetching menu:", error));
 
       function updateProductDisplay(item, product) {
-  const productContainer = document.getElementById("product-container");
-  const productElement = document.createElement("div");
-  productElement.classList.add("product", "d-flex", "m-3", "align-items-center", "mb-4");
+        const productContainer = document.getElementById("product-container");
+        const productElement = document.createElement("div");
+        productElement.classList.add("product", "m-3","mb-4");
+        productElement.innerHTML = ` 
+        
+    <div class="row"> 
+      <div class="d-flex justify-content-center">
+        
+        <div class="col-4 image-hide"> 
+          <img class="img-fluid" src="${
+            product.image.includes("drive.google.com")
+              ? `/proxy-image/${product.image.split("id=")[1]}`
+              : product.image
+          }" alt="${product.name}" 
+            onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+        </div>
+                
+        <div class="col-4 ">
+          <p class="fs-5"> ${product.name} </p>
+          <p class="fs-6"> description </p>
+                  
 
-  let imageSrc = product.image.includes("drive.google.com")
-    ? `/proxy-image/${product.image.split("id=")[1]}`
-    : product.image;
+          <table class="quantity">
+            <tr>
+              <td>
+                  <div class="btton-block d-flex justify-content-between mt-2 d-flex align-items-center gap-1">
+                    <div>
+                       <button class="btn  d-flex justify-content-center align-items-center"  onclick="updateQuantity('${item}', -1)">-</button>
+                    </div>
+                    <div class="border bg-light">
+                        <span id="${item}-count" class="text-center  fw-bold rounded">${cart[item] || 0}</span>
+                    </div>
+                    <div>
+                        <button class="btn  d-flex justify-content-center align-items-center"  onclick="updateQuantity('${item}', 1)">+</button>
+                    </div>
+                  </div>
+                </td>
+            </tr>
+          </table>
+          
 
-  productElement.innerHTML = `
-    <img src="${imageSrc}" alt="${product.name}" 
-      onerror="this.onerror=null; this.src='/images/placeholder.jpg';"/>
+        </div>
 
-    <div class="d-flex">
-      <p>${product.name}</p>
-      <p class="des">description</p>
 
-      <div class="quantity">
-        <button onclick="updateQuantity('${item}', -1)">-</button>
-        <span id="${item}-count">${cart[item] || 0}</span>
-        <button onclick="updateQuantity('${item}', 1)">+</button>
+        <div class="col-4">
+          <h3 class="text-danger"> ₹${product.price}</h3>
+        </div>
+
+
       </div>
     </div>
 
-    <p class="price-font">₹${product.price}</p>
   `;
-
-  productContainer.appendChild(productElement);
-}
-
+        productContainer.appendChild(productElement);
+      }
       function updateQuantity(item, change) {
         if (cart[item] + change >= 0) {
           cart[item] += change;
           // Update the quantity display
-         document.getElementById(`${item}-count`).textContent = cart[item];
-
+          document.getElementById(`${item}-count`).textContent = cart[item];
 
           // Update the total count
           updateCartCount();
