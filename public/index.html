@@ -292,8 +292,8 @@
                     <div class="border bg-light">
                         <span id="${item}-count" class="text-center  fw-bold rounded">${cart[item] || 0}</span>
                     </div>
-                    <div>
-                        <button class="btn  d-flex justify-content-center align-items-center"  onclick="updateQuantity('${item}', 1)">+</button>
+                    <div onclick="updateQuantity('${item}', 1)">
+                        <button class="btn  d-flex justify-content-center align-items-center"  >+</button>
                     </div>
                   </div>
                 </td>
